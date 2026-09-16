@@ -7,6 +7,7 @@
 #define SCREEN_WIDTH 80
 #define SCREEN_HEIGHT 60
 #define MAX_TRIANGLE_QUANTITY 1000
+#define EPSILON 1e-6
 using namespace std;
 
 char screenBuffer[SCREEN_HEIGHT][SCREEN_WIDTH];
@@ -16,9 +17,11 @@ char curSurfaceChar = '*';
 template <typename T>
 struct Dot3 {T x, y, z;};
 int triangleCurPtr = 0;
-int triangleEndPtr = 0;
+int triangleEndPtr = -3;
 Dot3<double>* triangleBuffer = (Dot3<double>*)malloc(sizeof(Dot3<double>) * MAX_TRIANGLE_QUANTITY * 3);
 Dot3<double>* triangleOrthoBuffer = (Dot3<double>*)malloc(sizeof(Dot3<double>) * MAX_TRIANGLE_QUANTITY * 3);
+
+
 
 Dot3<double> operator+(const Dot3<double>& a, const Dot3<double>& b) {
 	return {a.x + b.x, a.y + b.y, a.z + b.z};
@@ -52,6 +55,14 @@ Matrix4x4 operator*(const Matrix4x4& a, const Matrix4x4& b) {
 	return result;
 }
 
+Dot3<double> testVertex = { 1.0, 2.0, 1.0 };
+Matrix4x4 testCameraPos = { {
+	{ 1.0, 0.0, 0.0, 0.0 },
+	{ 0.0, 1.0, 0.0, 0.0 },
+	{ 0.0, 0.0, 1.0, 0.0 },
+	{ 0.0, 0.0, 0.0, 1.0 }
+} };
+
 Matrix4x4 toMatrix(const Dot3<double>& v) {
 	Matrix4x4 result = {};
 	result.m[0][3] = v.x;
@@ -70,7 +81,7 @@ bool isDotBehind(Dot3<double> tested) {
 Dot3<double> vertexShader(Dot3<double> vertex, Matrix4x4& CameraPos) {
 	Matrix4x4 vertexMatrix = toMatrix(vertex);
 	Matrix4x4 transformedMatrix = CameraPos * vertexMatrix;
-	return {FOCUS_DISTANCE * transformedMatrix.m[0][3] / transformedMatrix.m[2][3], FOCUS_DISTANCE * transformedMatrix.m[1][3] / transformedMatrix.m[2][3], transformedMatrix.m[2][3]};
+	return {FOCUS_DISTANCE * transformedMatrix.m[0][3], FOCUS_DISTANCE * transformedMatrix.m[1][3], transformedMatrix.m[2][3]};
 }
 Dot3<double> linearIntersection(Dot3<double> dot1, Dot3<double> dot2) {
 	double ratio = (dot1.z == dot2.z)?INFINITY:(dot1.z - CUT_SIZE)/(dot1.z - dot2.z);
@@ -141,20 +152,21 @@ void triangleCut() {
 }
 
 void fragmentShaderTriangle(){
+	for (triangleCurPtr = 0; triangleCurPtr < triangleEndPtr + 3; triangleCurPtr ++) {
+		triangleOrthoBuffer[triangleCurPtr] = vertexShader(triangleBuffer[triangleCurPtr], testCameraPos);
+	}
 	triangleCurPtr = 0;
 	while (triangleCurPtr <= triangleEndPtr) {
 		triangleCut();
-		triangleCurPtr+=3;
+		triangleCurPtr += 3;
+	}
+	for (triangleCurPtr = 0; triangleCurPtr < triangleEndPtr + 3; triangleCurPtr++) {
+		triangleOrthoBuffer[triangleCurPtr].x = triangleOrthoBuffer[triangleCurPtr].x / triangleOrthoBuffer[triangleCurPtr].z;
+		triangleOrthoBuffer[triangleCurPtr].y = triangleOrthoBuffer[triangleCurPtr].y / triangleOrthoBuffer[triangleCurPtr].z;
 	}
 }
 int main() {
-	Dot3<double> testVertex = { 1.0, 2.0, 1.0 };
-	Matrix4x4 testCameraPos = { {
-		{ 1.0, 0.0, 0.0, 0.0 },
-		{ 0.0, 1.0, 0.0, 0.0 },
-		{ 0.0, 0.0, 1.0, 0.0 },
-		{ 0.0, 0.0, 0.0, 1.0 }
-	} };
+
 	cout << "Original Vertex: (" << testVertex.x << ", " << testVertex.y << ", " << testVertex.z << ")\n";
 	Dot3<double> transformedVertex = vertexShader(testVertex, testCameraPos);
 	cout << "Transformed Vertex: (" << transformedVertex.x << ", " << transformedVertex.y << ", " << transformedVertex.z << ")\n";

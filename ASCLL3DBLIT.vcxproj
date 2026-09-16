@@ -24,6 +24,7 @@
     <ProjectGuid>{0e4e0c3a-9241-4a92-8cc1-c952b8457c76}</ProjectGuid>
     <RootNamespace>ASCLL3DBLIT</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <ProjectName>ASCII3DBLIT</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
